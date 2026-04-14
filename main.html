@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinQuest — Financial Literacy Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c14;
+    --bg2: #0d1321;
+    --bg3: #111827;
+    --card: #0f1a2e;
+    --card2: #132035;
+    --neon: #00f5c4;
+    --neon2: #ff6b35;
+    --neon3: #7c3aed;
+    --neon4: #fbbf24;
+    --red: #ef4444;
+    --green: #10b981;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --border: rgba(0,245,196,0.12);
+    --glow: 0 0 20px rgba(0,245,196,0.3);
+    --glow2: 0 0 20px rgba(255,107,53,0.3);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* === GRID BACKGROUND === */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,196,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,196,0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* === SCREENS === */
+  .screen { display: none; position: relative; z-index: 1; }
+  .screen.active { display: block; }
+
+  /* ======================== INTRO SCREEN ======================== */
+  #intro {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 2rem;
+  }
+  .intro-orb {
+    position: fixed; pointer-events: none;
+    border-radius: 50%;
+    filter: blur(100px);
+    animation: orbFloat 8s ease-in-out infinite;
+  }
+  .orb1 { width:500px;height:500px; background:rgba(0,245,196,0.06); top:-100px; left:-100px; }
+  .orb2 { width:400px;height:400px; background:rgba(124,58,237,0.08); bottom:-50px; right:-50px; animation-delay:-4s;}
+  @keyframes orbFloat { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-30px) scale(1.05)} }
+
+  .intro-badge {
+    display: inline-block;
+    font-family:'Space Mono',monospace;
+    font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase;
+    background: rgba(0,245,196,0.1); border:1px solid rgba(0,245,196,0.3);
+    color: var(--neon); padding: 6px 16px; border-radius:100px;
+    margin-bottom: 2rem;
+    animation: fadeSlideUp 0.6s ease both;
+  }
+  .intro-title {
+    font-family:'Syne',sans-serif; font-weight:800;
+    font-size: clamp(3rem,8vw,6rem); line-height:1;
+    margin-bottom:1rem;
+    animation: fadeSlideUp 0.6s 0.1s ease both;
+  }
+  .intro-title span { 
+    background: linear-gradient(135deg, var(--neon), #00c4ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .intro-sub {
+    font-size:1.1rem; color:var(--muted); max-width:500px;
+    margin: 0 auto 3rem; line-height:1.7;
+    animation: fadeSlideUp 0.6s 0.2s ease both;
+  }
+  .intro-stats {
+    display: flex; gap: 2rem; justify-content: center;
+    margin-bottom: 3rem; flex-wrap: wrap;
+    animation: fadeSlideUp 0.6s 0.3s ease both;
+  }
+  .intro-stat { text-align:center; }
+  .intro-stat-num { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; color:var(--neon); }
+  .intro-stat-label { font-size:0.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.1em; }
+  .btn-primary {
+    display: inline-flex; align-items:center; gap:10px;
+    background: var(--neon); color: var(--bg);
+    font-family:'Syne',sans-serif; font-weight:700; font-size:1rem;
+    padding: 16px 40px; border-radius:8px; border:none;
+    cursor: pointer; transition: all 0.3s;
+    box-shadow: 0 0 30px rgba(0,245,196,0.4);
+    animation: fadeSlideUp 0.6s 0.4s ease both;
+    text-transform: uppercase; letter-spacing:0.05em;
+  }
+  .btn-primary:hover { transform:translateY(-2px); box-shadow: 0 0 50px rgba(0,245,196,0.6); }
+  .btn-primary svg { transition: transform 0.3s; }
+  .btn-primary:hover svg { transform: translateX(4px); }
+
+  @keyframes fadeSlideUp {
+    from { opacity:0; transform:translateY(20px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  /* ======================== GAME SCREEN ======================== */
+  #game { min-height:100vh; }
+
+  /* === NAVBAR === */
+  .navbar {
+    display: flex; align-items:center; justify-content:space-between;
+    padding: 1rem 2rem; border-bottom:1px solid var(--border);
+    background: rgba(8,12,20,0.9); backdrop-filter:blur(20px);
+    position: sticky; top:0; z-index:100;
+  }
+  .nav-logo {
+    font-family:'Syne',sans-serif; font-weight:800; font-size:1.2rem;
+    color: var(--neon); letter-spacing:-0.02em;
+  }
+  .nav-logo span { color:var(--text); }
+  .nav-tabs {
+    display: flex; gap: 4px;
+    background: var(--bg2); border-radius:8px; padding:4px;
+  }
+  .nav-tab {
+    font-family:'Space Mono',monospace; font-size:0.7rem; font-weight:700;
+    padding: 8px 16px; border-radius:6px; border:none;
+    background: transparent; color:var(--muted); cursor:pointer;
+    transition: all 0.2s; text-transform:uppercase; letter-spacing:0.05em;
+  }
+  .nav-tab.active { background:var(--neon); color:var(--bg); }
+  .nav-tab:hover:not(.active) { color:var(--text); background:var(--card2); }
+  .nav-user {
+    display:flex; align-items:center; gap:12px;
+  }
+  .nav-balance {
+    font-family:'Space Mono',monospace; font-size:0.8rem;
+    background: rgba(0,245,196,0.08); border:1px solid var(--border);
+    padding:8px 14px; border-radius:6px; color:var(--neon);
+  }
+  .nav-day {
+    font-family:'Space Mono',monospace; font-size:0.75rem; color:var(--muted);
+  }
+
+  /* === CONTENT PANELS === */
+  .panel { display:none; padding:2rem; max-width:1400px; margin:0 auto; }
+  .panel.active { display:block; }
+
+  /* === DASHBOARD === */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .card {
+    background: var(--card); border:1px solid var(--border);
+    border-radius:16px; padding:1.5rem; position:relative; overflow:hidden;
+  }
+  .card::before {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(135deg, rgba(0,245,196,0.03), transparent 60%);
+    pointer-events:none;
+  }
+  .card-title {
+    font-family:'Space Mono',monospace; font-size:0.65rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.15em; color:var(--muted);
+    margin-bottom:1rem;
+  }
+
+  /* Health Score Radial */
+  .health-score-wrap { display:flex; align-items:center; gap:2rem; }
+  .radial-wrap { position:relative; width:140px; height:140px; flex-shrink:0; }
+  .radial-svg { transform:rotate(-90deg); }
+  .radial-bg { fill:none; stroke:var(--bg3); stroke-width:10; }
+  .radial-fg {
+    fill:none; stroke:var(--neon); stroke-width:10;
+    stroke-linecap:round;
+    stroke-dasharray: 339;
+    stroke-dashoffset: 100;
+    transition: stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1);
+    filter: drop-shadow(0 0 8px var(--neon));
+  }
+  .radial-num {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    font-family:'Syne',sans-serif; font-weight:800; font-size:1.8rem; color:var(--neon);
+  }
+  .radial-num small { font-size:0.6rem; color:var(--muted); font-family:'Space Mono',monospace; }
+  .health-details { flex:1; }
+  .health-metric {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:0.75rem;
+  }
+  .health-metric-label { font-size:0.8rem; color:var(--muted); }
+  .health-metric-val { font-family:'Space Mono',monospace; font-size:0.85rem; font-weight:700; }
+  .health-bar-wrap { height:4px; background:var(--bg3); border-radius:2px; margin-top:4px; overflow:hidden; width:100%; }
+  .health-bar { height:100%; border-radius:2px; transition: width 1s ease; }
+
+  /* Balance Card */
+  .balance-main {
+    font-family:'Syne',sans-serif; font-weight:800; font-size:2.5rem;
+    color:var(--neon); letter-spacing:-0.02em;
+    text-shadow: var(--glow);
+  }
+  .balance-change {
+    display:inline-flex; align-items:center; gap:4px;
+    font-family:'Space Mono',monospace; font-size:0.7rem;
+    padding:3px 8px; border-radius:4px;
+    margin-top:4px;
+  }
+  .balance-change.pos { background:rgba(16,185,129,0.15); color:var(--green); }
+  .balance-change.neg { background:rgba(239,68,68,0.15); color:var(--red); }
+
+  /* Mini charts */
+  .sparkline { width:100%; height:50px; margin-top:1rem; }
+  .spark-svg path { fill:none; stroke:var(--neon); stroke-width:2; }
+  .spark-svg .fill { stroke:none; fill:url(#sparkGrad); opacity:0.3; }
+
+  /* Budget Donut */
+  .budget-donut-wrap { display:flex; gap:1.5rem; align-items:center; flex-wrap:wrap; }
+  .donut-svg { width:120px; height:120px; flex-shrink:0; }
+  .budget-legend { flex:1; min-width:160px; }
+  .budget-item {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:0.6rem; cursor:pointer;
+    padding:4px 8px; border-radius:6px; transition:background 0.2s;
+  }
+  .budget-item:hover { background:var(--bg3); }
+  .budget-item-left { display:flex; align-items:center; gap:8px; }
+  .budget-dot { width:8px; height:8px; border-radius:50%; }
+  .budget-label { font-size:0.8rem; }
+  .budget-val { font-family:'Space Mono',monospace; font-size:0.75rem; color:var(--muted); }
+
+  /* Day Progress */
+  .day-prog-bar {
+    height:8px; background:var(--bg3); border-radius:4px;
+    margin: 1rem 0; overflow:hidden;
+  }
+  .day-prog-fill {
+    height:100%; border-radius:4px;
+    background: linear-gradient(90deg, var(--neon), #00c4ff);
+    transition: width 1s ease;
+    position:relative; overflow:hidden;
+  }
+  .day-prog-fill::after {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+    animation: shimmer 2s infinite;
+  }
+  @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+  .day-labels { display:flex; justify-content:space-between; font-family:'Space Mono',monospace; font-size:0.65rem; color:var(--muted); }
+
+  /* === BUDGET PANEL === */
+  .budget-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+  .budget-cat-card {
+    background:var(--card); border:1px solid var(--border); border-radius:14px; padding:1.25rem;
+    cursor:pointer; transition:all 0.3s; position:relative; overflow:hidden;
+  }
+  .budget-cat-card:hover { border-color:var(--neon); transform:translateY(-2px); box-shadow:var(--glow); }
+  .budget-cat-card.over-budget { border-color:var(--red); }
+  .budget-cat-icon { font-size:2rem; margin-bottom:0.5rem; }
+  .budget-cat-name { font-family:'Syne',sans-serif; font-weight:700; font-size:1rem; margin-bottom:0.25rem; }
+  .budget-cat-stats { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:0.5rem; }
+  .budget-spent { font-family:'Space Mono',monospace; font-size:1.1rem; font-weight:700; color:var(--neon); }
+  .budget-limit { font-family:'Space Mono',monospace; font-size:0.75rem; color:var(--muted); }
+  .budget-prog-wrap { height:6px; background:var(--bg3); border-radius:3px; overflow:hidden; }
+  .budget-prog { height:100%; border-radius:3px; transition:width 0.8s ease; }
+
+  .budget-actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:0.75rem; margin-top:1rem; }
+  .action-btn {
+    background:var(--card2); border:1px solid var(--border); border-radius:10px;
+    padding:1rem 1.25rem; cursor:pointer; transition:all 0.3s;
+    display:flex; align-items:center; gap:10px;
+    font-family:'DM Sans',sans-serif; font-size:0.85rem; color:var(--text);
+    text-align:left;
+  }
+  .action-btn:hover { border-color:var(--neon); background:rgba(0,245,196,0.05); }
+  .action-btn-icon { font-size:1.5rem; }
+  .action-btn-text { font-weight:500; }
+  .action-btn-sub { font-size:0.7rem; color:var(--muted); }
+
+  /* === INVEST PANEL === */
+  .invest-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem; }
+  .portfolio-val { font-family:'Syne',sans-serif; font-weight:800; font-size:2rem; color:var(--neon); }
+  .invest-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+  .invest-card {
+    background:var(--card); border:1px solid var(--border); border-radius:16px; padding:1.5rem;
+    position:relative; overflow:hidden; cursor:pointer; transition:all 0.3s;
+  }
+  .invest-card:hover { border-color:var(--neon); box-shadow:var(--glow); transform:translateY(-3px); }
+  .invest-card.selected { border-color:var(--neon); background:rgba(0,245,196,0.05); }
+  .invest-type-badge {
+    display:inline-block; font-family:'Space Mono',monospace; font-size:0.6rem;
+    text-transform:uppercase; letter-spacing:0.1em;
+    padding:3px 8px; border-radius:4px; margin-bottom:0.75rem;
+  }
+  .invest-name { font-family:'Syne',sans-serif; font-weight:700; font-size:1.1rem; margin-bottom:0.25rem; }
+  .invest-desc { font-size:0.78rem; color:var(--muted); margin-bottom:1rem; }
+  .invest-metrics { display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; }
+  .invest-metric { background:var(--bg3); border-radius:8px; padding:0.5rem; }
+  .invest-metric-label { font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
+  .invest-metric-val { font-family:'Space Mono',monospace; font-size:0.9rem; font-weight:700; margin-top:2px; }
+  .invest-chart-wrap { margin-top:1rem; height:60px; position:relative; }
+  .risk-bar { display:flex; gap:3px; margin-top:0.75rem; }
+  .risk-dot { width:16px; height:6px; border-radius:3px; background:var(--bg3); transition:background 0.3s; }
+
+  .invest-modal-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7);
+    backdrop-filter:blur(8px); z-index:200; align-items:center; justify-content:center;
+  }
+  .invest-modal-overlay.show { display:flex; }
+  .invest-modal {
+    background:var(--card); border:1px solid var(--border); border-radius:20px;
+    padding:2rem; max-width:460px; width:90%; position:relative;
+    animation: modalIn 0.3s ease;
+  }
+  @keyframes modalIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
+  .modal-close { position:absolute; top:1rem; right:1rem; background:var(--bg3); border:none; color:var(--muted); width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:1.1rem; display:flex;align-items:center;justify-content:center; transition:all 0.2s; }
+  .modal-close:hover { color:var(--text); background:var(--card2); }
+  .invest-amount-input {
+    width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:10px;
+    padding:12px 16px; color:var(--text); font-family:'Space Mono',monospace; font-size:1.1rem;
+    margin:1rem 0; outline:none; transition:border 0.2s;
+  }
+  .invest-amount-input:focus { border-color:var(--neon); }
+  .invest-presets { display:flex; gap:8px; margin-bottom:1rem; flex-wrap:wrap; }
+  .preset-btn {
+    background:var(--bg3); border:1px solid var(--border); color:var(--muted);
+    font-family:'Space Mono',monospace; font-size:0.7rem; padding:6px 12px;
+    border-radius:6px; cursor:pointer; transition:all 0.2s;
+  }
+  .preset-btn:hover { border-color:var(--neon); color:var(--neon); }
+  .btn-invest {
+    width:100%; background:var(--neon); color:var(--bg); border:none;
+    font-family:'Syne',sans-serif; font-weight:700; font-size:1rem;
+    padding:14px; border-radius:10px; cursor:pointer; transition:all 0.3s;
+    text-transform:uppercase; letter-spacing:0.05em;
+  }
+  .btn-invest:hover { transform:translateY(-1px); box-shadow:var(--glow); }
+
+  /* === LEADERBOARD === */
+  .lb-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; }
+  .lb-table { width:100%; border-collapse:collapse; }
+  .lb-table thead tr { border-bottom:1px solid var(--border); }
+  .lb-table th { font-family:'Space Mono',monospace; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); padding:0.75rem 1rem; text-align:left; }
+  .lb-row {
+    border-bottom:1px solid rgba(255,255,255,0.04);
+    transition:background 0.2s; cursor:pointer;
+  }
+  .lb-row:hover { background:rgba(0,245,196,0.03); }
+  .lb-row.you { background:rgba(0,245,196,0.06); border-color:rgba(0,245,196,0.2); }
+  .lb-row td { padding:1rem; vertical-align:middle; }
+  .lb-rank { font-family:'Syne',sans-serif; font-weight:800; font-size:1.1rem; width:50px; }
+  .lb-rank.gold { color:#fbbf24; }
+  .lb-rank.silver { color:#94a3b8; }
+  .lb-rank.bronze { color:#cd7c45; }
+  .lb-name { display:flex; align-items:center; gap:10px; }
+  .lb-avatar { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1rem; font-weight:700; }
+  .lb-username { font-weight:600; }
+  .lb-handle { font-size:0.72rem; color:var(--muted); }
+  .lb-score { font-family:'Space Mono',monospace; font-weight:700; color:var(--neon); font-size:0.95rem; }
+  .lb-change { font-family:'Space Mono',monospace; font-size:0.75rem; }
+  .lb-change.pos { color:var(--green); }
+  .lb-change.neg { color:var(--red); }
+  .lb-badge { display:inline-block; font-size:0.6rem; font-family:'Space Mono',monospace; padding:3px 8px; border-radius:4px; text-transform:uppercase; }
+
+  /* === QUIZ PANEL === */
+  .quiz-container { max-width:700px; margin:0 auto; }
+  .quiz-progress { display:flex; gap:6px; margin-bottom:2rem; }
+  .quiz-dot { flex:1; height:4px; border-radius:2px; background:var(--bg3); transition:background 0.3s; }
+  .quiz-dot.done { background:var(--neon); }
+  .quiz-dot.current { background:var(--neon2); animation: pulse-dot 1s infinite; }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .quiz-card {
+    background:var(--card); border:1px solid var(--border); border-radius:20px; padding:2rem;
+    animation: fadeSlideUp 0.4s ease;
+  }
+  .quiz-category {
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'Space Mono',monospace; font-size:0.65rem; letter-spacing:0.1em;
+    text-transform:uppercase; color:var(--neon2);
+    background:rgba(255,107,53,0.1); padding:5px 12px; border-radius:6px; margin-bottom:1rem;
+  }
+  .quiz-q { font-family:'Syne',sans-serif; font-weight:700; font-size:1.3rem; margin-bottom:2rem; line-height:1.4; }
+  .quiz-options { display:grid; gap:0.75rem; }
+  .quiz-option {
+    background:var(--bg3); border:1px solid var(--border); border-radius:12px;
+    padding:1rem 1.25rem; cursor:pointer; transition:all 0.3s;
+    display:flex; align-items:center; gap:12px;
+    font-size:0.95rem;
+  }
+  .quiz-option:hover { border-color:var(--neon); background:rgba(0,245,196,0.05); }
+  .quiz-option.correct { border-color:var(--green); background:rgba(16,185,129,0.1); }
+  .quiz-option.wrong { border-color:var(--red); background:rgba(239,68,68,0.1); }
+  .quiz-option-letter {
+    width:28px; height:28px; border-radius:6px; background:var(--card2);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono',monospace; font-size:0.75rem; flex-shrink:0;
+  }
+  .quiz-points {
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'Space Mono',monospace; font-size:0.75rem; color:var(--neon4);
+    margin-bottom:1.5rem;
+  }
+  .quiz-result-card {
+    background:var(--card); border:1px solid var(--border); border-radius:20px; padding:2rem;
+    text-align:center; animation: fadeSlideUp 0.4s ease;
+  }
+  .quiz-result-icon { font-size:4rem; margin-bottom:1rem; }
+  .quiz-result-score { font-family:'Syne',sans-serif; font-weight:800; font-size:3rem; color:var(--neon); }
+  .quiz-result-msg { color:var(--muted); margin-top:0.5rem; }
+
+  /* === EVENTS TICKER === */
+  .events-ticker {
+    position:fixed; bottom:0; left:0; right:0; z-index:50;
+    background:rgba(8,12,20,0.95); border-top:1px solid var(--border);
+    padding:0.5rem 2rem; overflow:hidden; height:36px;
+  }
+  .ticker-inner {
+    display:flex; gap:3rem; animation:ticker 30s linear infinite;
+    white-space:nowrap;
+  }
+  @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+  .ticker-item {
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'Space Mono',monospace; font-size:0.65rem;
+  }
+  .ticker-up { color:var(--green); }
+  .ticker-down { color:var(--red); }
+  .ticker-sep { color:var(--muted); }
+
+  /* === NOTIFICATIONS === */
+  .notif-stack { position:fixed; top:80px; right:1rem; z-index:300; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+  .notif {
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:0.75rem 1rem; max-width:300px; pointer-events:auto;
+    animation: notifIn 0.4s ease;
+    display:flex; gap:10px; align-items:flex-start;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  @keyframes notifIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+  .notif-icon { font-size:1.2rem; flex-shrink:0; }
+  .notif-title { font-weight:600; font-size:0.85rem; }
+  .notif-body { font-size:0.75rem; color:var(--muted); margin-top:2px; }
+
+  /* === XP BAR === */
+  .xp-bar-wrap { display:flex; align-items:center; gap:10px; }
+  .xp-label { font-family:'Space Mono',monospace; font-size:0.65rem; color:var(--muted); white-space:nowrap; }
+  .xp-track { flex:1; height:6px; background:var(--bg3); border-radius:3px; overflow:hidden; }
+  .xp-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,var(--neon3),var(--neon)); transition:width 1s ease; }
+  .xp-level { font-family:'Syne',sans-serif; font-weight:800; font-size:0.8rem; color:var(--neon3); white-space:nowrap; }
+
+  /* === EVENT POPUP === */
+  .event-popup {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75);
+    backdrop-filter:blur(12px); z-index:250; align-items:center; justify-content:center;
+  }
+  .event-popup.show { display:flex; }
+  .event-popup-card {
+    background:var(--card); border:1px solid rgba(255,107,53,0.4); border-radius:24px;
+    padding:2rem; max-width:480px; width:90%; position:relative;
+    animation: eventIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 0 60px rgba(255,107,53,0.2);
+  }
+  @keyframes eventIn { from{opacity:0;transform:scale(0.8) rotate(-3deg)} to{opacity:1;transform:scale(1) rotate(0)} }
+  .event-popup-type {
+    font-family:'Space Mono',monospace; font-size:0.65rem; letter-spacing:0.15em;
+    text-transform:uppercase; color:var(--neon2); margin-bottom:0.5rem;
+  }
+  .event-popup-title { font-family:'Syne',sans-serif; font-weight:800; font-size:1.6rem; margin-bottom:0.75rem; }
+  .event-popup-desc { font-size:0.9rem; color:var(--muted); margin-bottom:1.5rem; line-height:1.6; }
+  .event-popup-impact {
+    display:flex; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap;
+  }
+  .impact-chip {
+    background:var(--bg3); border-radius:8px; padding:8px 14px;
+    font-family:'Space Mono',monospace; font-size:0.75rem;
+  }
+  .impact-chip .label { color:var(--muted); font-size:0.65rem; }
+  .btn-event { 
+    width:100%; background:var(--neon2); color:white; border:none;
+    font-family:'Syne',sans-serif; font-weight:700; font-size:1rem;
+    padding:14px; border-radius:10px; cursor:pointer; transition:all 0.3s;
+  }
+  .btn-event:hover { transform:translateY(-1px); box-shadow:var(--glow2); }
+
+  /* === MISC === */
+  .section-title {
+    font-family:'Syne',sans-serif; font-weight:800; font-size:1.3rem;
+    margin-bottom:1rem; display:flex; align-items:center; gap:10px;
+  }
+  .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+  
+  .tag { display:inline-block; font-family:'Space Mono',monospace; font-size:0.6rem; padding:3px 8px; border-radius:4px; text-transform:uppercase; letter-spacing:0.05em; }
+  .tag-green { background:rgba(16,185,129,0.15); color:var(--green); }
+  .tag-red { background:rgba(239,68,68,0.15); color:var(--red); }
+  .tag-neon { background:rgba(0,245,196,0.1); color:var(--neon); }
+  .tag-orange { background:rgba(255,107,53,0.15); color:var(--neon2); }
+  .tag-purple { background:rgba(124,58,237,0.15); color:#a78bfa; }
+
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+  @media(max-width:768px) {
+    .two-col { grid-template-columns:1fr; }
+    .dashboard-grid { grid-template-columns:1fr; }
+    .nav-tabs { display:none; }
+    .navbar { flex-wrap:wrap; gap:0.5rem; }
+  }
+
+  /* Smooth scrollbar */
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  /* Transaction list */
+  .tx-list { display:flex; flex-direction:column; gap:0.5rem; }
+  .tx-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0.75rem 1rem; background:var(--bg3); border-radius:10px;
+    border:1px solid transparent; transition:border 0.2s;
+  }
+  .tx-item:hover { border-color:var(--border); }
+  .tx-left { display:flex; align-items:center; gap:12px; }
+  .tx-icon { width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem; }
+  .tx-name { font-size:0.85rem; font-weight:500; }
+  .tx-cat { font-size:0.7rem; color:var(--muted); }
+  .tx-amt { font-family:'Space Mono',monospace; font-size:0.9rem; font-weight:700; }
+  .tx-amt.out { color:var(--red); }
+  .tx-amt.in { color:var(--green); }
+
+  /* Mobile nav */
+  .mobile-nav { display:none; }
+  @media(max-width:768px) {
+    .mobile-nav {
+      display:flex; position:fixed; bottom:36px; left:0; right:0;
+      background:rgba(8,12,20,0.95); border-top:1px solid var(--border);
+      justify-content:space-around; padding:0.5rem 0; z-index:60;
+    }
+    .mobile-nav-btn {
+      display:flex; flex-direction:column; align-items:center; gap:2px;
+      background:none; border:none; color:var(--muted); cursor:pointer;
+      font-size:0.6rem; font-family:'Space Mono',monospace; text-transform:uppercase;
+      padding:6px 12px; border-radius:8px; transition:all 0.2s;
+    }
+    .mobile-nav-btn.active { color:var(--neon); }
+    .mobile-nav-btn svg { margin-bottom:1px; }
+    .panel { padding-bottom:6rem; }
+  }
+
+  /* Tooltip */
+  [data-tip] { position:relative; cursor:help; }
+  [data-tip]:hover::after {
+    content:attr(data-tip);
+    position:absolute; bottom:calc(100%+6px); left:50%; transform:translateX(-50%);
+    background:var(--card2); border:1px solid var(--border);
+    font-size:0.7rem; padding:5px 10px; border-radius:6px; white-space:nowrap;
+    font-family:'Space Mono',monospace; color:var(--text); z-index:99;
+  }
+
+  /* Achievement toast */
+  .achievement {
+    position:fixed; top:80px; left:50%; transform:translateX(-50%);
+    z-index:400; display:none;
+  }
+  .achievement.show { display:block; animation: achieveIn 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes achieveIn { from{opacity:0;transform:translateX(-50%) translateY(-20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+  .achievement-inner {
+    background: linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05));
+    border:1px solid rgba(251,191,36,0.4); border-radius:14px;
+    padding:1rem 1.5rem; display:flex; align-items:center; gap:12px;
+    box-shadow: 0 0 40px rgba(251,191,36,0.15);
+    white-space:nowrap;
+  }
+  .achieve-icon { font-size:1.5rem; }
+  .achieve-label { font-size:0.6rem; font-family:'Space Mono',monospace; color:var(--neon4); text-transform:uppercase; letter-spacing:0.1em; }
+  .achieve-title { font-family:'Syne',sans-serif; font-weight:700; }
+</style>
+</head>
+<body>
+
+<!-- ===================== INTRO SCREEN ===================== -->
+<div id="intro" class="screen active">
+  <div class="intro-orb orb1"></div>
+  <div class="intro-orb orb2"></div>
+  
+  <div class="intro-badge">🎮 PS-04 · Financial Literacy Simulator</div>
+  
+  <h1 class="intro-title">
+    Master Your<br><span>Money Game</span>
+  </h1>
+  
+  <p class="intro-sub">
+    Start with ₹10,000 virtual cash. Budget, invest, survive the month — 
+    and climb the leaderboard. Real financial decisions, zero real risk.
+  </p>
+  
+  <div class="intro-stats">
+    <div class="intro-stat">
+      <div class="intro-stat-num">₹10K</div>
+      <div class="intro-stat-label">Starting Stipend</div>
+    </div>
+    <div class="intro-stat">
+      <div class="intro-stat-num">30</div>
+      <div class="intro-stat-label">Day Simulation</div>
+    </div>
+    <div class="intro-stat">
+      <div class="intro-stat-num">5+</div>
+      <div class="intro-stat-label">Quiz Challenges</div>
+    </div>
+    <div class="intro-stat">
+      <div class="intro-stat-num">3</div>
+      <div class="intro-stat-label">Investment Types</div>
+    </div>
+  </div>
+  
+  <button class="btn-primary" onclick="startGame()">
+    Start Simulation
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+  </button>
+</div>
+
+<!-- ===================== GAME SCREEN ===================== -->
+<div id="game" class="screen">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-logo">Fin<span>Quest</span></div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showPanel('dashboard', this)">Dashboard</button>
+      <button class="nav-tab" onclick="showPanel('budget', this)">Budget</button>
+      <button class="nav-tab" onclick="showPanel('invest', this)">Invest</button>
+      <button class="nav-tab" onclick="showPanel('quiz', this)">Quiz</button>
+      <button class="nav-tab" onclick="showPanel('leaderboard', this)">Leaderboard</button>
+    </div>
+    <div class="nav-user">
+      <div class="nav-day" id="navDay">Day 1 / 30</div>
+      <div class="nav-balance" id="navBalance">₹10,000</div>
+    </div>
+  </nav>
+
+  <!-- MOBILE NAV -->
+  <div class="mobile-nav">
+    <button class="mobile-nav-btn active" onclick="showPanel('dashboard', this)">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Home
+    </button>
+    <button class="mobile-nav-btn" onclick="showPanel('budget', this)">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg>
+      Budget
+    </button>
+    <button class="mobile-nav-btn" onclick="showPanel('invest', this)">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      Invest
+    </button>
+    <button class="mobile-nav-btn" onclick="showPanel('quiz', this)">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Quiz
+    </button>
+    <button class="mobile-nav-btn" onclick="showPanel('leaderboard', this)">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="18 20 18 10"/><polyline points="12 20 12 4"/><polyline points="6 20 6 14"/></svg>
+      Ranks
+    </button>
+  </div>
+
+  <!-- ===== DASHBOARD PANEL ===== -->
+  <div id="panel-dashboard" class="panel active">
+    <div style="margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+        <div>
+          <div style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Welcome back,</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.6rem;" id="playerName">Player One</div>
+        </div>
+        <div class="xp-bar-wrap" style="min-width:250px;">
+          <div class="xp-label">XP</div>
+          <div class="xp-track"><div class="xp-fill" id="xpFill" style="width:32%;"></div></div>
+          <div class="xp-level" id="xpLevel">Lv. 3</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Day Progress -->
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-title">📅 Month Progress</div>
+      <div class="day-prog-bar"><div class="day-prog-fill" id="dayFill" style="width:3.3%;"></div></div>
+      <div class="day-labels">
+        <span id="dayStart">Day 1</span>
+        <span id="dayMid">Day 15</span>
+        <span id="dayEnd">Day 30</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:1rem;flex-wrap:wrap;gap:0.75rem;">
+        <div style="text-align:center;">
+          <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);">CURRENT DAY</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:var(--neon);" id="currentDayNum">1</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);">DAYS LEFT</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;" id="daysLeft">29</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);">DAILY BUDGET</div>
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;color:var(--neon4);" id="dailyBudget">₹333</div>
+        </div>
+        <button onclick="advanceDay()" style="background:var(--neon);color:var(--bg);border:none;font-family:'Syne',sans-serif;font-weight:700;padding:10px 20px;border-radius:8px;cursor:pointer;transition:all 0.3s;font-size:0.85rem;" onmouseover="this.style.opacity=0.9" onmouseout="this.style.opacity=1">⏭ Next Day</button>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <!-- Health Score -->
+      <div class="card">
+        <div class="card-title">💡 Financial Health Score</div>
+        <div class="health-score-wrap">
+          <div class="radial-wrap">
+            <svg class="radial-svg" width="140" height="140" viewBox="0 0 120 120">
+              <circle class="radial-bg" cx="60" cy="60" r="54"/>
+              <circle class="radial-fg" id="radialFg" cx="60" cy="60" r="54"/>
+            </svg>
+            <div class="radial-num" id="healthNum">72<small>/100</small></div>
+          </div>
+          <div class="health-details" style="width:100%;">
+            <div class="health-metric">
+              <span class="health-metric-label">Savings Rate</span>
+              <span class="health-metric-val" id="savingsRateVal" style="color:var(--green);">18%</span>
+            </div>
+            <div class="health-bar-wrap"><div class="health-bar" id="savingsBar" style="width:18%;background:var(--green);"></div></div>
+            <div class="health-metric" style="margin-top:0.75rem;">
+              <span class="health-metric-label">Spending Control</span>
+              <span class="health-metric-val" id="spendCtrlVal" style="color:var(--neon4);">65%</span>
+            </div>
+            <div class="health-bar-wrap"><div class="health-bar" id="spendBar" style="width:65%;background:var(--neon4);"></div></div>
+            <div class="health-metric" style="margin-top:0.75rem;">
+              <span class="health-metric-label">Investment Diversity</span>
+              <span class="health-metric-val" id="investDivVal" style="color:var(--neon);">40%</span>
+            </div>
+            <div class="health-bar-wrap"><div class="health-bar" id="investDivBar" style="width:40%;background:var(--neon);"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Balance -->
+      <div class="card">
+        <div class="card-title">💰 Balance</div>
+        <div class="balance-main" id="balanceMain">₹10,000</div>
+        <div class="balance-change pos" id="balanceChange">▲ +₹0 from start</div>
+        
+        <svg class="sparkline" id="sparklineSvg" viewBox="0 0 300 50" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="sparkGrad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#00f5c4" stop-opacity="0.4"/>
+              <stop offset="100%" stop-color="#00f5c4" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path class="fill" id="sparkFill" d=""/>
+          <path id="sparkLine" fill="none" stroke="#00f5c4" stroke-width="2"/>
+        </svg>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.75rem;">
+          <div style="background:var(--bg3);border-radius:8px;padding:0.75rem;">
+            <div style="font-size:0.65rem;color:var(--muted);font-family:'Space Mono',monospace;text-transform:uppercase;">Invested</div>
+            <div style="font-family:'Space Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--neon3);margin-top:2px;" id="investedAmt">₹0</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:8px;padding:0.75rem;">
+            <div style="font-size:0.65rem;color:var(--muted);font-family:'Space Mono',monospace;text-transform:uppercase;">Spent</div>
+            <div style="font-family:'Space Mono',monospace;font-size:0.95rem;font-weight:700;color:var(--red);margin-top:2px;" id="spentAmt">₹0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Budget Overview + Recent Transactions -->
+    <div class="two-col" style="margin-bottom:1.5rem;">
+      <div class="card">
+        <div class="card-title">📊 Budget Overview</div>
+        <div class="budget-donut-wrap">
+          <svg class="donut-svg" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="45" fill="none" stroke="var(--bg3)" stroke-width="16"/>
+            <!-- Rent -->
+            <circle id="donutRent" cx="60" cy="60" r="45" fill="none" stroke="#7c3aed" stroke-width="16" stroke-dasharray="60 283" stroke-dashoffset="0" transform="rotate(-90 60 60)"/>
+            <!-- Food -->
+            <circle id="donutFood" cx="60" cy="60" r="45" fill="none" stroke="#00f5c4" stroke-width="16" stroke-dasharray="50 283" stroke-dashoffset="-60" transform="rotate(-90 60 60)"/>
+            <!-- Entertainment -->
+            <circle id="donutEntertain" cx="60" cy="60" r="45" fill="none" stroke="#ff6b35" stroke-width="16" stroke-dasharray="30 283" stroke-dashoffset="-110" transform="rotate(-90 60 60)"/>
+            <!-- Savings -->
+            <circle id="donutSavings" cx="60" cy="60" r="45" fill="none" stroke="#fbbf24" stroke-width="16" stroke-dasharray="143 283" stroke-dashoffset="-140" transform="rotate(-90 60 60)"/>
+          </svg>
+          <div class="budget-legend">
+            <div class="budget-item" onclick="showPanel('budget',null)">
+              <div class="budget-item-left"><div class="budget-dot" style="background:#7c3aed;"></div><span class="budget-label">Rent</span></div>
+              <span class="budget-val" id="rentSpent">₹3,000</span>
+            </div>
+            <div class="budget-item" onclick="showPanel('budget',null)">
+              <div class="budget-item-left"><div class="budget-dot" style="background:#00f5c4;"></div><span class="budget-label">Food</span></div>
+              <span class="budget-val" id="foodSpent">₹0</span>
+            </div>
+            <div class="budget-item" onclick="showPanel('budget',null)">
+              <div class="budget-item-left"><div class="budget-dot" style="background:#ff6b35;"></div><span class="budget-label">Entertainment</span></div>
+              <span class="budget-val" id="entertainSpent">₹0</span>
+            </div>
+            <div class="budget-item" onclick="showPanel('budget',null)">
+              <div class="budget-item-left"><div class="budget-dot" style="background:#fbbf24;"></div><span class="budget-label">Savings</span></div>
+              <span class="budget-val" id="savingsAmt">₹7,000</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🧾 Recent Transactions</div>
+        <div class="tx-list" id="txList">
+          <div class="tx-item">
+            <div class="tx-left">
+              <div class="tx-icon" style="background:rgba(124,58,237,0.15);">🏠</div>
+              <div><div class="tx-name">Monthly Rent</div><div class="tx-cat">Housing</div></div>
+            </div>
+            <div class="tx-amt out">-₹3,000</div>
+          </div>
+          <div style="text-align:center;color:var(--muted);font-size:0.8rem;padding:1rem;">No more transactions yet. Start spending!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BUDGET PANEL ===== -->
+  <div id="panel-budget" class="panel">
+    <div style="margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+      <div>
+        <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Monthly Budget</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.8rem;">Allocate Your ₹10,000</div>
+      </div>
+      <div style="background:rgba(0,245,196,0.08);border:1px solid var(--border);border-radius:10px;padding:10px 18px;">
+        <div style="font-size:0.65rem;color:var(--muted);font-family:'Space Mono',monospace;">REMAINING</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.3rem;color:var(--neon);" id="budgetRemaining">₹7,000</div>
+      </div>
+    </div>
+
+    <div class="budget-grid">
+      <!-- Rent -->
+      <div class="budget-cat-card" id="rentCard">
+        <div class="budget-cat-icon">🏠</div>
+        <div class="budget-cat-name">Rent & Housing</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.75rem;">Monthly accommodation cost</div>
+        <div class="budget-cat-stats">
+          <div class="budget-spent" id="rentSpentB">₹3,000</div>
+          <div class="budget-limit">Budget: ₹3,500</div>
+        </div>
+        <div class="budget-prog-wrap"><div class="budget-prog" id="rentProg" style="width:86%;background:#7c3aed;"></div></div>
+        <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <span class="tag tag-purple">Auto-deducted</span>
+          <span class="tag tag-green">Within budget</span>
+        </div>
+      </div>
+
+      <!-- Food -->
+      <div class="budget-cat-card" id="foodCard" onclick="addExpense('food')">
+        <div class="budget-cat-icon">🍛</div>
+        <div class="budget-cat-name">Food & Groceries</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.75rem;">Daily meals, groceries, dining out</div>
+        <div class="budget-cat-stats">
+          <div class="budget-spent" id="foodSpentB">₹0</div>
+          <div class="budget-limit">Budget: ₹2,500</div>
+        </div>
+        <div class="budget-prog-wrap"><div class="budget-prog" id="foodProg" style="width:0%;background:var(--neon);"></div></div>
+        <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <span class="tag tag-neon">Click to spend</span>
+        </div>
+      </div>
+
+      <!-- Entertainment -->
+      <div class="budget-cat-card" id="entertainCard" onclick="addExpense('entertainment')">
+        <div class="budget-cat-icon">🎉</div>
+        <div class="budget-cat-name">Entertainment</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.75rem;">Movies, subscriptions, outings</div>
+        <div class="budget-cat-stats">
+          <div class="budget-spent" id="entertainSpentB">₹0</div>
+          <div class="budget-limit">Budget: ₹1,500</div>
+        </div>
+        <div class="budget-prog-wrap"><div class="budget-prog" id="entertainProg" style="width:0%;background:var(--neon2);"></div></div>
+        <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <span class="tag tag-orange">Click to spend</span>
+        </div>
+      </div>
+
+      <!-- Transport -->
+      <div class="budget-cat-card" id="transportCard" onclick="addExpense('transport')">
+        <div class="budget-cat-icon">🚌</div>
+        <div class="budget-cat-name">Transport</div>
+        <div style="font-size:0.75rem;color:var(--muted);margin-bottom:0.75rem;">Metro, cab, fuel, auto-rickshaw</div>
+        <div class="budget-cat-stats">
+          <div class="budget-spent" id="transportSpentB">₹0</div>
+          <div class="budget-limit">Budget: ₹800</div>
+        </div>
+        <div class="budget-prog-wrap"><div class="budget-prog" id="transportProg" style="width:0%;background:var(--neon4);"></div></div>
+        <div style="margin-top:0.75rem;">
+          <span class="tag tag-neon">Click to spend</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="section-title">Quick Spend</div>
+    <div class="budget-actions">
+      <div class="action-btn" onclick="quickSpend('food',150,'🍜','Instant Noodles')">
+        <div class="action-btn-icon">🍜</div>
+        <div><div class="action-btn-text">Instant Noodles</div><div class="action-btn-sub">-₹150</div></div>
+      </div>
+      <div class="action-btn" onclick="quickSpend('food',400,'🍕','Pizza Night')">
+        <div class="action-btn-icon">🍕</div>
+        <div><div class="action-btn-text">Pizza Night</div><div class="action-btn-sub">-₹400</div></div>
+      </div>
+      <div class="action-btn" onclick="quickSpend('entertainment',299,'📺','OTT Subscription')">
+        <div class="action-btn-icon">📺</div>
+        <div><div class="action-btn-text">OTT Subscription</div><div class="action-btn-sub">-₹299</div></div>
+      </div>
+      <div class="action-btn" onclick="quickSpend('entertainment',500,'🎬','Movie + Snacks')">
+        <div class="action-btn-icon">🎬</div>
+        <div><div class="action-btn-text">Movie + Snacks</div><div class="action-btn-sub">-₹500</div></div>
+      </div>
+      <div class="action-btn" onclick="quickSpend('transport',45,'🚇','Metro Ride')">
+        <div class="action-btn-icon">🚇</div>
+        <div><div class="action-btn-text">Metro Ride</div><div class="action-btn-sub">-₹45</div></div>
+      </div>
+      <div class="action-btn" onclick="quickSpend('food',200,'☕','Café Outing')">
+        <div class="action-btn-icon">☕</div>
+        <div><div class="action-btn-text">Café Outing</div><div class="action-btn-sub">-₹200</div></div>
+      </div>
+      <div class="action-btn" onclick="quickSpend('food',1200,'🛒','Weekly Groceries')">
+        <div class="action-btn-icon">🛒</div>
+        <div><div class="action-btn-text">Weekly Groceries</div><div class="action-btn-sub">-₹1,200</div></div>
+      </div>
+      <div class="action-btn" onclick="quickSpend('entertainment',800,'🎮','Gaming Credits')">
+        <div class="action-btn-icon">🎮</div>
+        <div><div class="action-btn-text">Gaming Credits</div><div class="action-btn-sub">-₹800</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== INVEST PANEL ===== -->
+  <div id="panel-invest" class="panel">
+    <div class="invest-header">
+      <div>
+        <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Portfolio Value</div>
+        <div class="portfolio-val" id="portfolioVal">₹0</div>
+        <div class="balance-change pos" id="portfolioChange" style="margin-top:4px;">No investments yet</div>
+      </div>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 16px;">
+          <div style="font-size:0.6rem;color:var(--muted);font-family:'Space Mono',monospace;">AVAILABLE</div>
+          <div style="font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;color:var(--neon);" id="availableToInvest">₹7,000</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="invest-grid">
+      <!-- FD -->
+      <div class="invest-card" onclick="openInvestModal('fd')">
+        <div class="invest-type-badge tag tag-green">Fixed Deposit</div>
+        <div class="invest-name">🏦 Secure FD</div>
+        <div class="invest-desc">State Bank guaranteed return. Safe, stable, boring — but your parents love it.</div>
+        <div class="invest-metrics">
+          <div class="invest-metric">
+            <div class="invest-metric-label">Return Rate</div>
+            <div class="invest-metric-val" style="color:var(--green);">7.2% p.a.</div>
+          </div>
+          <div class="invest-metric">
+            <div class="invest-metric-label">Risk Level</div>
+            <div class="invest-metric-val" style="color:var(--green);">Very Low</div>
+          </div>
+          <div class="invest-metric">
+            <div class="invest-metric-label">Lock-in</div>
+            <div class="invest-metric-val">1 Month</div>
+          </div>
+          <div class="invest-metric">
+            <div class="invest-metric-label">Min Amount</div>
+            <div class="invest-metric-val">₹500</div>
+          </div>
+        </div>
+        <div class="risk-bar" style="margin-top:0.75rem;">
+          <div class="risk-dot" style="background:var(--green);"></div>
+          <div class="risk-dot"></div><div class="risk-dot"></div><div class="risk-dot"></div><div class="risk-dot"></div>
+        </div>
+        <div style="margin-top:0.5rem;font-size:0.65rem;color:var(--muted);font-family:'Space Mono',monospace;">RISK: ●○○○○</div>
+        <div style="margin-top:0.75rem;font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--neon);">Invested: <span id="fdInvested">₹0</span></div>
+      </div>
+
+      <!-- Mutual Fund -->
+      <div class="invest-card" onclick="openInvestModal('mf')">
+        <div class="invest-type-badge tag tag-neon">Mutual Fund</div>
+        <div class="invest-name">📈 Balanced MF</div>
+        <div class="invest-desc">Diversified equity + debt fund. Moderate risk, decent returns — the smart middle ground.</div>
+        <div class="invest-metrics">
+          <div class="invest-metric">
+            <div class="invest-metric-label">Return Rate</div>
+            <div class="invest-metric-val" style="color:var(--neon);">12–18% p.a.</div>
+          </div>
+          <div class="invest-metric">
+            <div class="invest-metric-label">Risk Level</div>
+            <div class="invest-metric-val" style="color:var(--neon4);">Medium</div>
+          </div>
+          <div class="invest-metric">
+            <div class="invest-metric-label">Lock-in</div>
+            <div class="invest-metric-val">None</div>
+          </div>
+          <div class="invest-metric">
+            <div class="invest-metric-label">Min Amount</div>
+            <div class="invest-metric-val">₹100 SIP</div>
+          </div>
+        </div>
+        <div class="risk-bar" style="margin-top:0.75rem;">
+          <div class="risk-dot" style="background:var(--neon4);"></div>
+          <div class="risk-dot" style="background:var(--neon4);"></div>
+          <div class="risk-dot" style="background:var(--neon4);"></div>
+          <div class="risk-dot"></div><div class="risk-dot"></div>
+        </div>
+        <div style="margin-top:0.5rem;font-size:0.65rem;color:var(--muted);font-family:'Space Mono',monospace;">RISK: ●●●○○</div>
+        <div style="margin-top:0.75rem;font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--neon);">Invested: <span id="mfInvested">₹0</span></div>
+      </div>
+
+      <!-- Stocks -->
+      <div class="invest-card" onclick="openInvestModal('stocks')">
+        <div class="invest-type-badge tag tag-orange">Direct Stocks</div>
+        <div class="invest-name">🚀 Nifty Stocks</div>
+        <div class="invest-desc">High risk, high reward. Could 10x or go to zero. Only for the brave (and the FOMO crowd).</div>
+        <div class="invest-metrics">
+          <div class="invest-metric">
+            <div class="invest-metric-label">Return Rate</div>
+            <div class="invest-metric-val" style="color:var(--neon2);">-20% to 60%</div>
+          </div>
+          <div class="invest-metric">
+            <div class="invest-metric-label">Risk Level</div>
+            <div class="invest-metric-val" style="color:var(--red);">Very High</div>
+          </div>
+          <div class="invest-metric">
+            <div class="invest-metric-label">Lock-in</div>
+            <div class="invest-metric-val">None</div>
+          </div>
+          <div class="invest-metric">
+            <div class="invest-metric-label">Min Amount</div>
+            <div class="invest-metric-val">₹200</div>
+          </div>
+        </div>
+        <div class="risk-bar" style="margin-top:0.75rem;">
+          <div class="risk-dot" style="background:var(--red);"></div>
+          <div class="risk-dot" style="background:var(--red);"></div>
+          <div class="risk-dot" style="background:var(--red);"></div>
+          <div class="risk-dot" style="background:var(--red);"></div>
+          <div class="risk-dot" style="background:var(--red);"></div>
+        </div>
+        <div style="margin-top:0.5rem;font-size:0.65rem;color:var(--muted);font-family:'Space Mono',monospace;">RISK: ●●●●●</div>
+        <div style="margin-top:0.75rem;font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--neon);">Invested: <span id="stocksInvested">₹0</span></div>
+      </div>
+    </div>
+
+    <!-- Portfolio breakdown -->
+    <div class="card">
+      <div class="card-title">📊 Portfolio Breakdown</div>
+      <div id="portfolioBreakdown" style="text-align:center;color:var(--muted);padding:2rem;">
+        No investments yet. Start building your portfolio! 💼
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== QUIZ PANEL ===== -->
+  <div id="panel-quiz" class="panel">
+    <div class="quiz-container">
+      <div style="margin-bottom:2rem;">
+        <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Financial Literacy</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.8rem;">Quiz Challenges</div>
+        <div style="font-size:0.85rem;color:var(--muted);margin-top:0.5rem;">Earn XP and bonus balance by answering correctly!</div>
+      </div>
+      
+      <div id="quizStats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;">
+        <div class="card" style="text-align:center;padding:1rem;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;color:var(--neon);" id="quizScore">0</div>
+          <div style="font-size:0.7rem;color:var(--muted);font-family:'Space Mono',monospace;">POINTS</div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;color:var(--neon4);" id="quizStreak">0🔥</div>
+          <div style="font-size:0.7rem;color:var(--muted);font-family:'Space Mono',monospace;">STREAK</div>
+        </div>
+        <div class="card" style="text-align:center;padding:1rem;">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.5rem;color:var(--neon3);" id="quizCompleted">0/5</div>
+          <div style="font-size:0.7rem;color:var(--muted);font-family:'Space Mono',monospace;">COMPLETED</div>
+        </div>
+      </div>
+
+      <div class="quiz-progress" id="quizProgress">
+        <div class="quiz-dot current"></div>
+        <div class="quiz-dot"></div>
+        <div class="quiz-dot"></div>
+        <div class="quiz-dot"></div>
+        <div class="quiz-dot"></div>
+      </div>
+
+      <div id="quizContent"></div>
+    </div>
+  </div>
+
+  <!-- ===== LEADERBOARD PANEL ===== -->
+  <div id="panel-leaderboard" class="panel">
+    <div class="lb-header">
+      <div>
+        <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">Season 1 · Month Simulation</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.8rem;">🏆 Leaderboard</div>
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--muted);">Updated live</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:2rem;">
+      <div class="card" style="text-align:center;border-color:rgba(251,191,36,0.3);">
+        <div style="font-size:2rem;">🥇</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:0.9rem;margin-top:0.5rem;" id="lb1name">FinanceKing</div>
+        <div style="font-family:'Space Mono',monospace;font-size:1.1rem;color:var(--neon4);font-weight:700;" id="lb1score">94</div>
+      </div>
+      <div class="card" style="text-align:center;border-color:rgba(148,163,184,0.3);">
+        <div style="font-size:2rem;">🥈</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:0.9rem;margin-top:0.5rem;">WealthWizard</div>
+        <div style="font-family:'Space Mono',monospace;font-size:1.1rem;color:#94a3b8;font-weight:700;">88</div>
+      </div>
+      <div class="card" style="text-align:center;border-color:rgba(205,124,69,0.3);">
+        <div style="font-size:2rem;">🥉</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:0.9rem;margin-top:0.5rem;">StockStar99</div>
+        <div style="font-family:'Space Mono',monospace;font-size:1.1rem;color:#cd7c45;font-weight:700;">81</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>Health Score</th>
+            <th>Balance</th>
+            <th>Badge</th>
+            <th>Change</th>
+          </tr>
+        </thead>
+        <tbody id="lbBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- end game -->
+
+<!-- ===== INVEST MODAL ===== -->
+<div class="invest-modal-overlay" id="investModalOverlay">
+  <div class="invest-modal">
+    <button class="modal-close" onclick="closeInvestModal()">✕</button>
+    <div id="investModalContent"></div>
+  </div>
+</div>
+
+<!-- ===== EVENT POPUP ===== -->
+<div class="event-popup" id="eventPopup">
+  <div class="event-popup-card">
+    <div class="event-popup-type" id="eventType">⚡ MARKET EVENT</div>
+    <div class="event-popup-title" id="eventTitle">Stock Market Crashed!</div>
+    <div class="event-popup-desc" id="eventDesc">Sensex dropped 4% today. Your stock investments are affected.</div>
+    <div class="event-popup-impact" id="eventImpact"></div>
+    <button class="btn-event" onclick="closeEvent()">Acknowledge & Continue →</button>
+  </div>
+</div>
+
+<!-- ===== NOTIFICATIONS ===== -->
+<div class="notif-stack" id="notifStack"></div>
+
+<!-- ===== ACHIEVEMENT ===== -->
+<div class="achievement" id="achievement">
+  <div class="achievement-inner">
+    <div class="achieve-icon">🏅</div>
+    <div>
+      <div class="achieve-label">Achievement Unlocked</div>
+      <div class="achieve-title" id="achieveTitle">First Investment!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TICKER ===== -->
+<div class="events-ticker">
+  <div class="ticker-inner" id="tickerInner"></div>
+</div>
+
+<script>
+// =============== STATE ===============
+const state = {
+  balance: 10000,
+  day: 1,
+  xp: 320,
+  level: 3,
+  healthScore: 72,
+  spending: { food: 0, entertainment: 0, transport: 0 },
+  budgets: { rent: 3000, food: 2500, entertainment: 1500, transport: 800 },
+  investments: { fd: 0, mf: 0, stocks: 0 },
+  portfolioValue: 0,
+  transactions: [
+    { icon: '🏠', name: 'Monthly Rent', cat: 'Housing', amt: -3000, type: 'out' }
+  ],
+  balanceHistory: [10000],
+  quizScore: 0,
+  quizStreak: 0,
+  quizCompleted: 0,
+  achievements: [],
+};
+
+// =============== QUIZ DATA ===============
+const quizQuestions = [
+  {
+    category: "Budgeting Basics",
+    q: "You receive ₹10,000/month. After rent (₹3,000), which is the BEST savings strategy?",
+    options: ["Spend everything and save what's left", "Save first, spend from the rest", "Invest all savings in stocks immediately", "Put everything in a savings account"],
+    correct: 1,
+    explanation: "Pay yourself first! Saving before spending is the golden rule of personal finance.",
+    points: 100,
+    reward: 200
+  },
+  {
+    category: "Investment Types",
+    q: "What does 'Compound Interest' mean in the context of a Fixed Deposit?",
+    options: ["Interest calculated only on principal", "Interest earned on interest reinvested", "A fixed % deducted as tax", "Interest paid monthly, principal at end"],
+    correct: 1,
+    explanation: "Compound interest = Interest on Principal + accumulated Interest. This is why Einstein called it the 8th wonder!",
+    points: 100,
+    reward: 200
+  },
+  {
+    category: "Risk Management",
+    q: "The market crashes 20% overnight. You have ₹2,000 in stocks. What's the SMARTEST move?",
+    options: ["Panic sell immediately", "Buy more at the dip if fundamentals are strong", "Take a personal loan to invest more", "Stop all investments forever"],
+    correct: 1,
+    explanation: "Market dips = sales on stocks! If the company's fundamentals are sound, holding or buying more at lower prices is often wise.",
+    points: 150,
+    reward: 300
+  },
+  {
+    category: "Mutual Funds",
+    q: "What is NAV (Net Asset Value) in Mutual Funds?",
+    options: ["The fund manager's salary", "Per-unit price of the mutual fund", "Minimum investment amount", "Annual fee charged to investors"],
+    correct: 1,
+    explanation: "NAV = (Total Assets - Liabilities) / Total Units. It's basically the 'price' of one unit of the mutual fund.",
+    points: 100,
+    reward: 200
+  },
+  {
+    category: "Financial Planning",
+    q: "What is the '50-30-20' rule in personal budgeting?",
+    options: [
+      "50% investments, 30% savings, 20% spending",
+      "50% needs, 30% wants, 20% savings",
+      "50% rent, 30% food, 20% fun",
+      "50% stocks, 30% FD, 20% gold"
+    ],
+    correct: 1,
+    explanation: "The 50/30/20 rule: 50% for needs (rent, food), 30% for wants (fun, shopping), 20% for savings & investments.",
+    points: 100,
+    reward: 250
+  }
+];
+
+// =============== LEADERBOARD DATA ===============
+const lbData = [
+  { name: "FinanceKing", handle: "@financeking", score: 94, balance: 13200, change: +3, badge: "💎 Diamond", color: "#fbbf24" },
+  { name: "WealthWizard", handle: "@wealthwiz", score: 88, balance: 12100, change: +1, badge: "🥇 Gold", color: "#94a3b8" },
+  { name: "StockStar99", handle: "@stockstar", score: 81, balance: 11500, change: -1, badge: "📈 Trader", color: "#cd7c45" },
+  { name: "BudgetBoss", handle: "@budgetboss", score: 79, balance: 11200, change: +2, badge: "🎯 Strategic", color: "#7c3aed" },
+  { name: "You (Player One)", handle: "@you", score: 72, balance: 10000, change: 0, badge: "🌱 Beginner", color: "#00f5c4", isYou: true },
+  { name: "SIPSaver", handle: "@sipsaver", score: 68, balance: 9800, change: -2, badge: "💰 Saver", color: "#10b981" },
+  { name: "CryptoKid", handle: "@cryptokid", score: 55, balance: 8200, change: -3, badge: "🎲 Gambler", color: "#ff6b35" },
+  { name: "BrokeStudent", handle: "@brokestud", score: 41, balance: 6100, change: -1, badge: "😅 Learning", color: "#ef4444" },
+];
+
+// =============== EVENTS ===============
+const gameEvents = [
+  { type: "🏦 BANK EVENT", title: "FD Interest Credited!", desc: "Your Fixed Deposit earned its monthly interest. Good job staying disciplined!", impact: [{label:"FD Returns", val:"+₹30", pos:true}], fn: () => { if(state.investments.fd > 0){ state.balance += Math.round(state.investments.fd * 0.006); updateUI(); } }},
+  { type: "⚡ MARKET EVENT", title: "Stock Market Rallied!", desc: "Sensex jumped 3% today! Bull market is back, your portfolio is up!", impact: [{label:"Stocks", val:"+3%", pos:true}], fn: () => { if(state.investments.stocks > 0){ const gain = Math.round(state.investments.stocks * 0.03); state.investments.stocks += gain; state.balance += gain; updateUI(); } }},
+  { type: "💸 SURPRISE EXPENSE", title: "Phone Screen Cracked!", desc: "You dropped your phone. Screen repair will cost you ₹700.", impact: [{label:"Expense", val:"-₹700", pos:false}], fn: () => { state.balance = Math.max(0, state.balance - 700); state.spending.entertainment = (state.spending.entertainment||0) + 700; updateUI(); showNotif("📱", "Phone Repair", "-₹700 deducted"); }},
+  { type: "🎁 CASHBACK EVENT", title: "UPI Cashback Reward!", desc: "You received ₹150 cashback on your recent transactions!", impact: [{label:"Cashback", val:"+₹150", pos:true}], fn: () => { state.balance += 150; updateUI(); showNotif("💳", "Cashback!", "+₹150 added"); }},
+  { type: "📉 MARKET CRASH", title: "Sensex Tumbles!", desc: "Market corrected 5% today. Don't panic — stay invested if you believe in the fundamentals.", impact: [{label:"Stocks", val:"-5%", pos:false}], fn: () => { if(state.investments.stocks > 0){ const loss = Math.round(state.investments.stocks * 0.05); state.investments.stocks -= loss; state.balance -= loss; updateUI(); } }},
+  { type: "🏆 QUIZ UNLOCKED", title: "Pop Quiz Time!", desc: "A market event has triggered a financial literacy quiz! Answer correctly for bonus rewards.", impact: [{label:"Bonus", val:"+₹200", pos:true}], fn: () => { setTimeout(() => showPanel('quiz', null), 500); }},
+];
+
+let currentEvent = null;
+let currentQuizIndex = 0;
+let quizAnswered = false;
+
+// =============== INIT ===============
+function startGame() {
+  document.getElementById('intro').classList.remove('active');
+  document.getElementById('game').classList.add('active');
+  initTicker();
+  renderLeaderboard();
+  renderQuiz();
+  updateUI();
+  updateSparkline();
+  setTimeout(() => triggerEvent(0), 3000);
+  setTimeout(() => showNotif("👋", "Welcome!", "You start with ₹10,000. Manage it wisely!"), 1000);
+}
+
+function showPanel(id, triggerEl) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  document.querySelectorAll('.nav-tab, .mobile-nav-btn').forEach(t => t.classList.remove('active'));
+  if (triggerEl) triggerEl.classList.add('active');
+}
+
+// =============== UPDATE UI ===============
+function updateUI() {
+  // Balance
+  document.getElementById('navBalance').textContent = '₹' + state.balance.toLocaleString('en-IN');
+  document.getElementById('balanceMain').textContent = '₹' + state.balance.toLocaleString('en-IN');
+  document.getElementById('navDay').textContent = `Day ${state.day} / 30`;
+  document.getElementById('currentDayNum').textContent = state.day;
+  document.getElementById('daysLeft').textContent = 30 - state.day;
+  
+  const dailyBudget = Math.round(state.balance / Math.max(1, 30 - state.day));
+  document.getElementById('dailyBudget').textContent = '₹' + dailyBudget.toLocaleString('en-IN');
+  
+  // Day progress
+  const pct = (state.day / 30) * 100;
+  document.getElementById('dayFill').style.width = pct + '%';
+  
+  // Balance change
+  const diff = state.balance - 10000;
+  const changeEl = document.getElementById('balanceChange');
+  changeEl.textContent = (diff >= 0 ? '▲ +₹' : '▼ -₹') + Math.abs(diff).toLocaleString('en-IN') + ' from start';
+  changeEl.className = 'balance-change ' + (diff >= 0 ? 'pos' : 'neg');
+  
+  // Investments
+  const totalInvested = state.investments.fd + state.investments.mf + state.investments.stocks;
+  const totalSpent = state.spending.food + state.spending.entertainment + state.spending.transport + 3000;
+  document.getElementById('investedAmt').textContent = '₹' + totalInvested.toLocaleString('en-IN');
+  document.getElementById('spentAmt').textContent = '₹' + totalSpent.toLocaleString('en-IN');
+  document.getElementById('fdInvested').textContent = '₹' + state.investments.fd.toLocaleString('en-IN');
+  document.getElementById('mfInvested').textContent = '₹' + state.investments.mf.toLocaleString('en-IN');
+  document.getElementById('stocksInvested').textContent = '₹' + state.investments.stocks.toLocaleString('en-IN');
+  document.getElementById('availableToInvest').textContent = '₹' + state.balance.toLocaleString('en-IN');
+  document.getElementById('portfolioVal').textContent = '₹' + totalInvested.toLocaleString('en-IN');
+  
+  const portChangeEl = document.getElementById('portfolioChange');
+  if (totalInvested > 0) {
+    portChangeEl.textContent = `${((totalInvested/(totalInvested||1))*100).toFixed(0)}% of starting balance deployed`;
+    portChangeEl.className = 'balance-change pos';
+  } else {
+    portChangeEl.textContent = 'No investments yet';
+    portChangeEl.className = 'balance-change pos';
+  }
+
+  // Budget
+  const budgetUsed = totalSpent;
+  document.getElementById('budgetRemaining').textContent = '₹' + Math.max(0, state.balance).toLocaleString('en-IN');
+  
+  // Budget bars
+  const cats = ['food','entertainment','transport'];
+  cats.forEach(cat => {
+    const spent = state.spending[cat] || 0;
+    const limit = state.budgets[cat];
+    const pct = Math.min(100, (spent / limit) * 100);
+    const colors = { food:'var(--neon)', entertainment:'var(--neon2)', transport:'var(--neon4)' };
+    const el = document.getElementById(cat + 'Prog');
+    if (el) { el.style.width = pct + '%'; el.style.background = pct > 90 ? 'var(--red)' : colors[cat]; }
+    const bEl = document.getElementById(cat + 'SpentB');
+    if (bEl) bEl.textContent = '₹' + spent.toLocaleString('en-IN');
+    const dEl = document.getElementById(cat + 'Spent');
+    if (dEl) dEl.textContent = '₹' + spent.toLocaleString('en-IN');
+  });
+  
+  document.getElementById('rentSpentB').textContent = '₹3,000';
+  document.getElementById('rentSpent').textContent = '₹3,000';
+  document.getElementById('savingsAmt').textContent = '₹' + Math.max(0, state.balance - totalInvested).toLocaleString('en-IN');
+
+  // Health Score
+  updateHealthScore();
+  
+  // Portfolio breakdown
+  updatePortfolioBreakdown();
+
+  // Leaderboard - update you
+  lbData[4].score = state.healthScore;
+  lbData[4].balance = state.balance;
+  lbData.sort((a,b) => b.score - a.score);
+  renderLeaderboard();
+
+  // XP
+  const xpPct = ((state.xp % 500) / 500) * 100;
+  document.getElementById('xpFill').style.width = xpPct + '%';
+  document.getElementById('xpLevel').textContent = `Lv. ${state.level}`;
+}
+
+function updateHealthScore() {
+  const totalSpent = state.spending.food + state.spending.entertainment + state.spending.transport + 3000;
+  const totalInvested = state.investments.fd + state.investments.mf + state.investments.stocks;
+  
+  // Savings rate
+  const savingsRate = Math.max(0, (state.balance / 10000) * 100);
+  // Spending control (lower spending relative to balance = better)
+  const spendCtrl = Math.max(0, 100 - (totalSpent / 100));
+  // Investment diversity
+  const investTypes = [state.investments.fd, state.investments.mf, state.investments.stocks].filter(v => v > 0).length;
+  const investDiv = (investTypes / 3) * 100;
+  
+  const score = Math.round((savingsRate * 0.4) + (Math.min(100, spendCtrl) * 0.35) + (investDiv * 0.25));
+  state.healthScore = Math.min(100, Math.max(10, score));
+  
+  document.getElementById('healthNum').innerHTML = state.healthScore + '<small>/100</small>';
+  // Radial: circumference = 2*PI*54 = 339
+  const dashOffset = 339 - (339 * state.healthScore / 100);
+  document.getElementById('radialFg').style.strokeDashoffset = dashOffset;
+  
+  const srPct = Math.round(savingsRate);
+  const spPct = Math.round(Math.min(100, spendCtrl));
+  const idPct = Math.round(investDiv);
+  
+  document.getElementById('savingsRateVal').textContent = srPct + '%';
+  document.getElementById('savingsBar').style.width = srPct + '%';
+  document.getElementById('spendCtrlVal').textContent = spPct + '%';
+  document.getElementById('spendBar').style.width = spPct + '%';
+  document.getElementById('investDivVal').textContent = idPct + '%';
+  document.getElementById('investDivBar').style.width = idPct + '%';
+}
+
+function updatePortfolioBreakdown() {
+  const total = state.investments.fd + state.investments.mf + state.investments.stocks;
+  if (total === 0) {
+    document.getElementById('portfolioBreakdown').innerHTML = '<div style="text-align:center;color:var(--muted);padding:2rem;">No investments yet. Start building your portfolio! 💼</div>';
+    return;
+  }
+  const items = [
+    { label: 'Fixed Deposit', amt: state.investments.fd, color: '#10b981' },
+    { label: 'Mutual Fund', amt: state.investments.mf, color: '#00f5c4' },
+    { label: 'Stocks', amt: state.investments.stocks, color: '#ff6b35' },
+  ].filter(i => i.amt > 0);
+  
+  document.getElementById('portfolioBreakdown').innerHTML = items.map(item => {
+    const pct = Math.round((item.amt / total) * 100);
+    return `<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem;">
+      <div style="width:120px;font-size:0.85rem;">${item.label}</div>
+      <div style="flex:1;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${item.color};border-radius:4px;transition:width 0.8s;"></div>
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:0.8rem;width:80px;text-align:right;">₹${item.amt.toLocaleString('en-IN')}</div>
+      <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--muted);width:35px;">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function updateSparkline() {
+  state.balanceHistory.push(state.balance);
+  const data = state.balanceHistory.slice(-20);
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const w = 300, h = 50;
+  const pts = data.map((v, i) => {
+    const x = (i / Math.max(1, data.length - 1)) * w;
+    const y = h - ((v - min) / Math.max(1, max - min)) * h;
+    return [x, y];
+  });
+  const line = pts.map((p, i) => (i === 0 ? `M${p[0]},${p[1]}` : `L${p[0]},${p[1]}`)).join(' ');
+  const fill = line + ` L${w},${h} L0,${h} Z`;
+  document.getElementById('sparkLine').setAttribute('d', line);
+  document.getElementById('sparkFill').setAttribute('d', fill);
+}
+
+// =============== ADVANCE DAY ===============
+function advanceDay() {
+  if (state.day >= 30) { showEndGame(); return; }
+  state.day++;
+  // Random event chance
+  if (Math.random() < 0.3) {
+    const idx = Math.floor(Math.random() * gameEvents.length);
+    setTimeout(() => triggerEvent(idx), 500);
+  }
+  // Small investment returns
+  if (state.investments.fd > 0) { state.investments.fd += Math.round(state.investments.fd * 0.00019); }
+  if (state.investments.mf > 0) { const r = (Math.random() - 0.45) * 0.008; state.investments.mf = Math.round(state.investments.mf * (1 + r)); }
+  if (state.investments.stocks > 0) { const r = (Math.random() - 0.48) * 0.02; state.investments.stocks = Math.round(state.investments.stocks * (1 + r)); }
+  
+  // XP gain
+  state.xp += 15;
+  if (state.xp >= state.level * 500) state.level++;
+  
+  updateUI();
+  updateSparkline();
+  showNotif("📅", `Day ${state.day}`, "Another day survived!");
+}
+
+// =============== EXPENSES ===============
+function addExpense(cat) {
+  const amounts = { food: 300, entertainment: 400, transport: 100 };
+  const icons = { food: '🍛', entertainment: '🎉', transport: '🚌' };
+  const names = { food: 'Food Purchase', entertainment: 'Entertainment', transport: 'Transport' };
+  const amt = amounts[cat];
+  if (state.balance < amt) { showNotif("❌", "Insufficient Balance", "Not enough money!"); return; }
+  state.balance -= amt;
+  state.spending[cat] = (state.spending[cat] || 0) + amt;
+  addTransaction(icons[cat], names[cat], cat, -amt);
+  updateUI(); updateSparkline();
+  showNotif(icons[cat], names[cat], '-₹' + amt + ' spent');
+  if ((state.spending[cat] || 0) > state.budgets[cat]) {
+    showNotif("⚠️", "Over Budget!", `${cat} spending exceeded limit!`);
+    document.getElementById(cat + 'Card').classList.add('over-budget');
+  }
+}
+
+function quickSpend(cat, amt, icon, name) {
+  if (state.balance < amt) { showNotif("❌", "Insufficient Balance", "Not enough money!"); return; }
+  state.balance -= amt;
+  state.spending[cat] = (state.spending[cat] || 0) + amt;
+  addTransaction(icon, name, cat, -amt);
+  updateUI(); updateSparkline();
+  showNotif(icon, name, '-₹' + amt.toLocaleString('en-IN') + ' spent');
+  if ((state.spending[cat] || 0) > state.budgets[cat]) {
+    document.getElementById(cat + 'Card') && document.getElementById(cat + 'Card').classList.add('over-budget');
+    showNotif("⚠️", "Over Budget!", `${cat} spending exceeded limit!`);
+  }
+}
+
+function addTransaction(icon, name, cat, amt) {
+  state.transactions.unshift({ icon, name, cat, amt, type: amt < 0 ? 'out' : 'in' });
+  renderTransactions();
+}
+
+function renderTransactions() {
+  const list = state.transactions.slice(0, 6);
+  const catColors = { Housing:'rgba(124,58,237,0.15)', food:'rgba(0,245,196,0.1)', entertainment:'rgba(255,107,53,0.1)', transport:'rgba(251,191,36,0.1)', investment:'rgba(16,185,129,0.1)' };
+  document.getElementById('txList').innerHTML = list.map(tx => `
+    <div class="tx-item">
+      <div class="tx-left">
+        <div class="tx-icon" style="background:${catColors[tx.cat]||'var(--bg3)'};">${tx.icon}</div>
+        <div><div class="tx-name">${tx.name}</div><div class="tx-cat">${tx.cat}</div></div>
+      </div>
+      <div class="tx-amt ${tx.type}">${tx.type==='out'?'-':'+'}₹${Math.abs(tx.amt).toLocaleString('en-IN')}</div>
+    </div>
+  `).join('');
+}
+
+// =============== INVESTMENTS ===============
+function openInvestModal(type) {
+  const info = {
+    fd: { name: '🏦 Secure FD', color: 'var(--green)', rate: '7.2% p.a.', min: 500, max: state.balance },
+    mf: { name: '📈 Balanced MF', color: 'var(--neon)', rate: '12–18% p.a.', min: 100, max: state.balance },
+    stocks: { name: '🚀 Nifty Stocks', color: 'var(--neon2)', rate: 'Variable', min: 200, max: state.balance },
+  }[type];
+  
+  document.getElementById('investModalContent').innerHTML = `
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--muted);text-transform:uppercase;margin-bottom:0.25rem;">Investing in</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.4rem;">${info.name}</div>
+      <div style="font-size:0.8rem;color:${info.color};font-family:'Space Mono',monospace;margin-top:4px;">Expected Return: ${info.rate}</div>
+    </div>
+    <div style="background:var(--bg3);border-radius:10px;padding:1rem;margin-bottom:1rem;font-size:0.8rem;color:var(--muted);">
+      💡 Available: <strong style="color:var(--neon);">₹${state.balance.toLocaleString('en-IN')}</strong> · Min: ₹${info.min.toLocaleString('en-IN')}
+    </div>
+    <input class="invest-amount-input" id="investAmt" type="number" placeholder="Enter amount (₹)" min="${info.min}" max="${info.max}"/>
+    <div class="invest-presets">
+      ${[1000,2000,3000,5000].map(v => `<button class="preset-btn" onclick="document.getElementById('investAmt').value=${v}">₹${v.toLocaleString('en-IN')}</button>`).join('')}
+      <button class="preset-btn" onclick="document.getElementById('investAmt').value=${Math.floor(state.balance*0.5)}">50%</button>
+    </div>
+    <button class="btn-invest" onclick="confirmInvest('${type}')">Invest Now 🚀</button>
+  `;
+  document.getElementById('investModalOverlay').classList.add('show');
+}
+
+function closeInvestModal() {
+  document.getElementById('investModalOverlay').classList.remove('show');
+}
+
+function confirmInvest(type) {
+  const amt = parseInt(document.getElementById('investAmt').value);
+  const mins = { fd: 500, mf: 100, stocks: 200 };
+  if (!amt || amt < mins[type]) { showNotif("❌", "Invalid Amount", `Minimum investment: ₹${mins[type]}`); return; }
+  if (amt > state.balance) { showNotif("❌", "Insufficient Funds", "You don't have that much!"); return; }
+  state.balance -= amt;
+  state.investments[type] += amt;
+  const names = { fd: 'Fixed Deposit', mf: 'Mutual Fund', stocks: 'Stocks' };
+  const icons = { fd: '🏦', mf: '📈', stocks: '🚀' };
+  addTransaction(icons[type], names[type] + ' Investment', 'investment', -amt);
+  closeInvestModal();
+  updateUI(); updateSparkline();
+  showNotif(icons[type], "Invested!", `₹${amt.toLocaleString('en-IN')} into ${names[type]}`);
+  
+  // First investment achievement
+  const total = state.investments.fd + state.investments.mf + state.investments.stocks;
+  if (!state.achievements.includes('first_invest') && total > 0) {
+    state.achievements.push('first_invest');
+    showAchievement('First Investment! 🚀');
+    state.xp += 100;
+  }
+  if (state.investments.fd > 0 && state.investments.mf > 0 && state.investments.stocks > 0 && !state.achievements.includes('diverse')) {
+    state.achievements.push('diverse');
+    showAchievement('Portfolio Diversifier! 🎯');
+    state.xp += 200;
+    state.balance += 500;
+    showNotif("🎯", "Diversity Bonus!", "+₹500 for investing in 3 types!");
+  }
+}
+
+// =============== QUIZ ===============
+function renderQuiz() {
+  if (state.quizCompleted >= quizQuestions.length) {
+    renderQuizComplete(); return;
+  }
+  const q = quizQuestions[currentQuizIndex];
+  document.getElementById('quizContent').innerHTML = `
+    <div class="quiz-card">
+      <div class="quiz-category">📚 ${q.category}</div>
+      <div class="quiz-points">⭐ ${q.points} pts · 💰 +₹${q.reward} if correct</div>
+      <div class="quiz-q">${q.q}</div>
+      <div class="quiz-options" id="quizOptions">
+        ${q.options.map((opt, i) => `
+          <div class="quiz-option" onclick="answerQuiz(${i})" id="qopt-${i}">
+            <div class="quiz-option-letter">${'ABCD'[i]}</div>
+            ${opt}
+          </div>
+        `).join('')}
+      </div>
+      <div id="quizExplain" style="display:none;margin-top:1.25rem;padding:1rem;background:var(--bg3);border-radius:10px;font-size:0.85rem;line-height:1.6;"></div>
+      <div id="quizNextBtn" style="display:none;margin-top:1rem;">
+        <button onclick="nextQuiz()" style="background:var(--neon);color:var(--bg);border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:0.9rem;padding:12px 24px;border-radius:8px;cursor:pointer;width:100%;">
+          Next Question →
+        </button>
+      </div>
+    </div>
+  `;
+  document.getElementById('quizScore').textContent = state.quizScore;
+  document.getElementById('quizStreak').textContent = state.quizStreak + '🔥';
+  document.getElementById('quizCompleted').textContent = state.quizCompleted + '/5';
+  updateQuizProgress();
+  quizAnswered = false;
+}
+
+function updateQuizProgress() {
+  const dots = document.querySelectorAll('.quiz-dot');
+  dots.forEach((d, i) => {
+    d.className = 'quiz-dot';
+    if (i < state.quizCompleted) d.classList.add('done');
+    else if (i === currentQuizIndex) d.classList.add('current');
+  });
+}
+
+function answerQuiz(idx) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  const q = quizQuestions[currentQuizIndex];
+  const opts = document.querySelectorAll('.quiz-option');
+  opts[q.correct].classList.add('correct');
+  if (idx !== q.correct) opts[idx].classList.add('wrong');
+  else {
+    state.quizScore += q.points;
+    state.quizStreak++;
+    state.balance += q.reward;
+    state.xp += 50;
+    showNotif("🎉", "Correct!", `+${q.points} pts · +₹${q.reward}`);
+  }
+  if (idx !== q.correct) state.quizStreak = 0;
+  
+  const explainEl = document.getElementById('quizExplain');
+  explainEl.style.display = 'block';
+  explainEl.innerHTML = `<strong>${idx === q.correct ? '✅ Correct!' : '❌ Wrong!'}</strong> ${q.explanation}`;
+  document.getElementById('quizNextBtn').style.display = 'block';
+  document.getElementById('quizScore').textContent = state.quizScore;
+  document.getElementById('quizStreak').textContent = state.quizStreak + '🔥';
+  state.quizCompleted++;
+  document.getElementById('quizCompleted').textContent = state.quizCompleted + '/5';
+  updateUI();
+}
+
+function nextQuiz() {
+  currentQuizIndex = (currentQuizIndex + 1) % quizQuestions.length;
+  renderQuiz();
+}
+
+function renderQuizComplete() {
+  const pct = Math.round((state.quizScore / 550) * 100);
+  document.getElementById('quizContent').innerHTML = `
+    <div class="quiz-result-card">
+      <div class="quiz-result-icon">${pct >= 80 ? '🏆' : pct >= 60 ? '👏' : '📚'}</div>
+      <div style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);text-transform:uppercase;">Quiz Complete!</div>
+      <div class="quiz-result-score">${state.quizScore}</div>
+      <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:var(--muted);">Total Points Earned</div>
+      <div class="quiz-result-msg" style="margin-top:1rem;">
+        ${pct >= 80 ? 'Excellent! You are a financial literacy pro! 🌟' :
+          pct >= 60 ? 'Good job! Keep learning and growing! 📈' :
+          'Keep practicing — financial literacy takes time! 💪'}
+      </div>
+      <button onclick="resetQuiz()" style="margin-top:1.5rem;background:var(--neon);color:var(--bg);border:none;font-family:'Syne',sans-serif;font-weight:700;padding:12px 24px;border-radius:8px;cursor:pointer;font-size:0.95rem;">
+        Try Again 🔄
+      </button>
+    </div>
+  `;
+}
+
+function resetQuiz() {
+  currentQuizIndex = 0;
+  state.quizCompleted = 0;
+  renderQuiz();
+}
+
+// =============== LEADERBOARD ===============
+function renderLeaderboard() {
+  const sorted = [...lbData].sort((a,b) => b.score - a.score);
+  document.getElementById('lbBody').innerHTML = sorted.map((p, i) => `
+    <tr class="lb-row ${p.isYou ? 'you' : ''}">
+      <td><div class="lb-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div></td>
+      <td>
+        <div class="lb-name">
+          <div class="lb-avatar" style="background:${p.color}22;color:${p.color};">${p.name[0]}</div>
+          <div>
+            <div class="lb-username">${p.name}${p.isYou?' 👈':''}</div>
+            <div class="lb-handle">${p.handle}</div>
+          </div>
+        </div>
+      </td>
+      <td><div class="lb-score">${p.score}</div></td>
+      <td><div style="font-family:'Space Mono',monospace;font-size:0.8rem;">₹${p.balance.toLocaleString('en-IN')}</div></td>
+      <td><span class="lb-badge tag ${i<3?'tag-neon':'tag-purple'}">${p.badge}</span></td>
+      <td><div class="lb-change ${p.change>0?'pos':'neg'}">${p.change>0?'▲':'▼'} ${Math.abs(p.change)}</div></td>
+    </tr>
+  `).join('');
+  
+  // Top 3 podium
+  if (sorted[0]) document.getElementById('lb1name').textContent = sorted[0].name;
+  if (sorted[0]) document.getElementById('lb1score').textContent = sorted[0].score;
+}
+
+// =============== EVENTS ===============
+function triggerEvent(idx) {
+  const ev = gameEvents[idx];
+  currentEvent = ev;
+  document.getElementById('eventType').textContent = ev.type;
+  document.getElementById('eventTitle').textContent = ev.title;
+  document.getElementById('eventDesc').textContent = ev.desc;
+  document.getElementById('eventImpact').innerHTML = ev.impact.map(imp => `
+    <div class="impact-chip">
+      <div class="label">${imp.label}</div>
+      <div style="font-family:'Space Mono',monospace;font-weight:700;font-size:0.9rem;color:${imp.pos?'var(--green)':'var(--red)'};">${imp.val}</div>
+    </div>
+  `).join('');
+  document.getElementById('eventPopup').classList.add('show');
+}
+
+function closeEvent() {
+  document.getElementById('eventPopup').classList.remove('show');
+  if (currentEvent && currentEvent.fn) currentEvent.fn();
+  updateUI(); updateSparkline();
+}
+
+// =============== NOTIFICATIONS ===============
+function showNotif(icon, title, body) {
+  const stack = document.getElementById('notifStack');
+  const el = document.createElement('div');
+  el.className = 'notif';
+  el.innerHTML = `<div class="notif-icon">${icon}</div><div><div class="notif-title">${title}</div><div class="notif-body">${body}</div></div>`;
+  stack.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// =============== ACHIEVEMENT ===============
+function showAchievement(title) {
+  const el = document.getElementById('achievement');
+  document.getElementById('achieveTitle').textContent = title;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// =============== TICKER ===============
+function initTicker() {
+  const items = [
+    ['RELIANCE', '+1.2%', true], ['TCS', '-0.4%', false], ['HDFC BANK', '+0.8%', true],
+    ['INFOSYS', '+2.1%', true], ['WIPRO', '-1.5%', false], ['AIRTEL', '+0.5%', true],
+    ['ZOMATO', '-3.2%', false], ['PAYTM', '-0.8%', false], ['SENSEX', '+0.3%', true],
+    ['NIFTY 50', '+0.2%', true], ['GOLD', '+0.1%', true], ['SBI FD', '7.2% p.a.', true],
+  ];
+  const ticker = [...items, ...items].map(([name, val, up]) =>
+    `<span class="ticker-item">
+      <span style="color:var(--muted);">${name}</span>
+      <span class="${up ? 'ticker-up' : 'ticker-down'}">${val}</span>
+      <span class="ticker-sep">|</span>
+    </span>`
+  ).join('');
+  document.getElementById('tickerInner').innerHTML = ticker;
+}
+
+// =============== END GAME ===============
+function showEndGame() {
+  showNotif("🏁", "Month Complete!", `Final score: ${state.healthScore}`);
+  showAchievement('Month Survived! 🏆');
+}
+
+// =============== BOOT ===============
+// Pre-init quiz
+renderQuiz();
+</script>
+</body>
+</html>
