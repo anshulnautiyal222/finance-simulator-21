@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../AppContext/AppContent';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, RadialBarChart, RadialBar } from 'recharts';
-import CharButton from '../components/CharButton';
+import CharButton from '../component/CharButton';
 
 function Card3D({ children, style = {} }) {
   const [rot, setRot] = useState({ x: 0, y: 0 });

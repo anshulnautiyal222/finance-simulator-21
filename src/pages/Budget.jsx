@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useApp } from '../context/AppContext';
-import CharButton from '../components/CharButton';
+import { useApp } from '../AppContext/AppContent';
+import CharButton from '../component/CharButton';
 
 const CATEGORIES = [
   { id: 'rent', label: 'Rent & Housing', icon: '🏠', color: '#7c3aed', limit: 3000, fixed: true },

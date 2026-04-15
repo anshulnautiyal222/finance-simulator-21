@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../AppContext/AppContent';
 
 const MOCK_OTP = '123456';
 

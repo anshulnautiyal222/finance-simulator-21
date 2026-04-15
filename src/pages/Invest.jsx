@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../AppContext/AppContent';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import CharButton from '../components/CharButton';
+import CharButton from '../component/CharButton';
 
 const INVESTMENTS = [
   {

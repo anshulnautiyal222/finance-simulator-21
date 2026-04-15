@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../AppContext/AppContent';
 
 const PLAYERS = [
   { name: 'FinanceKing', handle: '@financeking', score: 94, balance: 13200, badge: '💎 Diamond', color: '#fbbf24', change: 3 },

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useApp } from '../context/AppContext';
-import CharButton from '../components/CharButton';
+import { useApp } from '../AppContext/AppContent';
+import CharButton from '../component/CharButton';
 
 const QUESTIONS = [
   {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../AppContext/AppContent';
 
 const MENU_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊', desc: 'Your financial overview', color: '#00f5c4', theme: 'theme-dashboard' },

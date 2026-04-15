@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AppProvider } from './context/AppContext';
-import Cursor from './components/Cursor';
-import Navbar from './components/Navbar';
-import Tutorial from './components/Tutorial';
-import HeroSlides from './components/HeroSlides';
+import { AppProvider } from './AppContext/AppContent';
+import Cursor from './component/Cursor';
+import Navbar from './component/Navbar';
+import Tutorial from './component/Tutorial';
+import HeroSlides from './component/HeroSlides';
 import Dashboard from './pages/Dashboard';
 import Budget from './pages/Budget';
 import Invest from './pages/Invest';
 import Quiz from './pages/Quiz';
-import Leaderboard from './pages/Leaderboard';
-import './styles/global.css';
+import Leaderboard from './pages/Leaderboards';
+import './global.css';
 
 const PAGE_TRANSITIONS = {
   initial: { opacity: 0, y: 20, scale: 0.99 },

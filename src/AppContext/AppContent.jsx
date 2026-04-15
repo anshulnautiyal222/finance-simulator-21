@@ -15,9 +15,9 @@ export const AppProvider = ({ children }) => {
   const [gameState, setGameState] = useState({
     balance: 10000,
     day: 1,
-    xp: 320,
-    level: 3,
-    healthScore: 72,
+    xp: 100,
+    level: 1,
+    healthScore: 75,
     spending: { food: 0, entertainment: 0, transport: 0 },
     budgets: { rent: 3000, food: 2500, entertainment: 1500, transport: 800 },
     investments: { fd: 0, mf: 0, stocks: 0 },
